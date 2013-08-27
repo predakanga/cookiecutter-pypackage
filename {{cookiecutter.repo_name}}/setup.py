@@ -14,8 +14,33 @@ if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     sys.exit()
 
+try:
+    from setuptools.command.test import test as TestCommand
+    class Tox(TestCommand):
+        def finalize_options(self):
+            TestCommand.finalize_options(self)
+            self.test_args = []
+            self.test_suite = True
+        def run_tests(self):
+            #import here, cause outside the eggs aren't loaded
+            import tox
+            errcode = tox.cmdline(self.test_args)
+            sys.exit(errcode)
+except ImportError:
+    Tox = None
+
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
+
+# Extract our requirements
+try:
+    from pip.req import parse_requirements
+    pip_reqs = parse_requirements('requirements.txt')
+    requirements = [str(r.req) for r in pip_reqs]
+except ImportError:
+    with open('requirements.txt') as f:
+        requirements = filter(lambda line: not line.startswith("#") and not line.startswith("-") and len(line),
+                              f.read().splitlines())
 
 setup(
     name='{{ cookiecutter.repo_name }}',
@@ -30,8 +55,7 @@ setup(
     ],
     package_dir={'{{ cookiecutter.repo_name }}': '{{ cookiecutter.repo_name }}'},
     include_package_data=True,
-    install_requires=[
-    ],
+    install_requires=requirements,
     license="BSD",
     zip_safe=False,
     keywords='{{ cookiecutter.repo_name }}',
@@ -47,4 +71,6 @@ setup(
         'Programming Language :: Python :: 3.3',
     ],
     test_suite='tests',
+    test_requires=['tox'],
+    cmdclass = {'test': Tox},
 )
