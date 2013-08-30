@@ -3,7 +3,7 @@
 
 import os
 import sys
-
+from {{ cookiecutter.repo_name }} import __version__
 
 try:
     from setuptools import setup
@@ -16,18 +16,18 @@ if sys.argv[-1] == 'publish':
 
 try:
     from setuptools.command.test import test as TestCommand
-    class Tox(TestCommand):
+    class PyTest(TestCommand):
         def finalize_options(self):
             TestCommand.finalize_options(self)
             self.test_args = []
             self.test_suite = True
+
         def run_tests(self):
-            #import here, cause outside the eggs aren't loaded
-            import tox
-            errcode = tox.cmdline(self.test_args)
+            import pytest
+            errcode = pytest.main(self.test_args)
             sys.exit(errcode)
 except ImportError:
-    Tox = None
+    PyTest = None
 
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
@@ -37,14 +37,19 @@ try:
     from pip.req import parse_requirements
     pip_reqs = parse_requirements('requirements.txt')
     requirements = [str(r.req) for r in pip_reqs]
+    test_reqs = parse_requirements('test_requirements.txt')
+    test_requirements = [str(r.req) for r in test_reqs]
 except ImportError:
     with open('requirements.txt') as f:
         requirements = filter(lambda line: not line.startswith("#") and not line.startswith("-") and len(line),
                               f.read().splitlines())
+    with open('test_requirements.txt') as f:
+        test_requirements = filter(lambda line: not line.startswith("#") and not line.startswith("-") and len(line),
+                                   f.read().splitlines())
 
 setup(
     name='{{ cookiecutter.repo_name }}',
-    version='{{ cookiecutter.version }}',
+    version=__version__,
     description='{{ cookiecutter.project_short_description }}',
     long_description=readme + '\n\n' + history,
     author='{{ cookiecutter.full_name }}',
@@ -71,6 +76,6 @@ setup(
         'Programming Language :: Python :: 3.3',
     ],
     test_suite='tests',
-    test_requires=['tox'],
-    cmdclass = {'test': Tox},
+    tests_require=test_requirements,
+    cmdclass = {'test': PyTest},
 )

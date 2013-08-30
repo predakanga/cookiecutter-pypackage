@@ -1,4 +1,6 @@
 -r test_requirements.txt
+-r requirements.txt
 ipython
 flake8
 Sphinx
+tox
